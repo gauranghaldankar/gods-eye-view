@@ -201,17 +201,13 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
         [createLrfSelectedOverlayEntry({ id: stableId, position, target })],
         { cohortLimit: 1, collisionCapacity: 0, moving: false },
       );
-      _viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(
-          target.lon,
-          target.lat,
-          800,
+      const sphere = new Cesium.BoundingSphere(position, 50);
+      _viewer.camera.flyToBoundingSphere(sphere, {
+        offset: new Cesium.HeadingPitchRange(
+          0,
+          Cesium.Math.toRadians(-45),
+          600,
         ),
-        orientation: {
-          heading: 0,
-          pitch: Cesium.Math.toRadians(-60),
-          roll: 0,
-        },
         duration: 1.5,
       });
     },
