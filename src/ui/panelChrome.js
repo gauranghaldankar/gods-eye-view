@@ -15,6 +15,7 @@ const SHARE_PANEL_STATE_SPECS = Object.freeze([
   { id: 'weather-panel' },
   { id: 'recent-imagery-panel' },
   { id: 'street-level-panel' },
+  { id: 'lrf-panel' },
   { id: 'radio-panel' },
   { id: 'scene-panel' },
   { id: 'global-context-panel' },
@@ -28,6 +29,7 @@ const COCKPIT_ENTRY_COLLAPSE_PANEL_IDS = Object.freeze([
   'weather-panel',
   'recent-imagery-panel',
   'street-level-panel',
+  'lrf-panel',
   'scene-panel',
   'pp-toggles',
   'global-context-panel',
@@ -293,6 +295,7 @@ export class PanelChrome {
       'weather-panel',
       'recent-imagery-panel',
       'street-level-panel',
+      'lrf-panel',
       'global-context-panel',
     ].includes(panelEl?.id);
     const collapsed = panelEl.classList.contains('collapsed');

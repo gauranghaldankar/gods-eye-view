@@ -9,6 +9,10 @@ import {
   selectLrfOverlayCohort,
   mapAnalystRecord,
 } from './model.js';
+import {
+  LRF_SELECTED_OVERLAY_SOURCE_ID,
+  createLrfSelectedOverlayEntry,
+} from './selection.js';
 export * from './model.js';
 export { createLrfObservationsSource } from './source.js';
 
@@ -43,6 +47,8 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
   let _pendingFlyTo = false;
   let _hoverHandler = null;
   let _hoveredTargetId = null;
+  let _snapshotListener = null;
+  let _selectedTargetId = null;
 
   function _refreshOverlays() {
     if (!_enabled || !_lastSnapshot?.targets?.length) return;
@@ -88,6 +94,7 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
       _enabled = false;
       _lastSnapshot = null;
       overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, false);
+      overlayHost.setVisible(LRF_SELECTED_OVERLAY_SOURCE_ID, false);
       _hoverHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
       _hoverHandler.setInputAction((movement) => {
         if (!_enabled || !_lastSnapshot) return;
@@ -114,15 +121,20 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
       _pendingFlyTo = true;
       if (_dataSource) _dataSource.show = true;
       overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, true);
+      overlayHost.setVisible(LRF_SELECTED_OVERLAY_SOURCE_ID, true);
     },
 
     disable() {
       _request?.abort();
       _request = null;
       _enabled = false;
+      _lastSnapshot = null;
       if (_dataSource) _dataSource.show = false;
       overlayHost.clearSource(LRF_OVERLAY_SOURCE_ID);
       overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, false);
+      layer.clearSelection();
+      overlayHost.setVisible(LRF_SELECTED_OVERLAY_SOURCE_ID, false);
+      _snapshotListener?.();
     },
 
     setParams(params = {}) {
@@ -159,6 +171,59 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
           { id: 'markerSize', label: 'Marker', min: 6, max: 24, step: 2, value: _markerSize, unit: 'px', param: 'markerSize' },
         ],
       };
+    },
+
+    isEnabled() {
+      return _enabled;
+    },
+
+    getSnapshot() {
+      return _lastSnapshot;
+    },
+
+    setSnapshotListener(listener) {
+      _snapshotListener = listener || null;
+    },
+
+    selectTarget(stableId) {
+      const target = (_lastSnapshot?.targets || []).find(
+        (t) => t.stableId === stableId,
+      );
+      if (!target || !_viewer) return;
+      _selectedTargetId = stableId;
+      const position = Cesium.Cartesian3.fromDegrees(
+        target.lon,
+        target.lat,
+        target.hEllM,
+      );
+      overlayHost.setEntries(
+        LRF_SELECTED_OVERLAY_SOURCE_ID,
+        [createLrfSelectedOverlayEntry({ id: stableId, position, target })],
+        { cohortLimit: 1, collisionCapacity: 0, moving: false },
+      );
+      _viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(
+          target.lon,
+          target.lat,
+          800,
+        ),
+        orientation: {
+          heading: 0,
+          pitch: Cesium.Math.toRadians(-60),
+          roll: 0,
+        },
+        duration: 1.5,
+      });
+    },
+
+    clearSelection() {
+      if (!_selectedTargetId) return;
+      _selectedTargetId = null;
+      overlayHost.clearSource(LRF_SELECTED_OVERLAY_SOURCE_ID);
+    },
+
+    getSelectedTargetId() {
+      return _selectedTargetId;
     },
 
     async update() {
@@ -352,6 +417,14 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
         _count = count;
         _lastUpdate = Date.now();
         _lastError = null;
+        // Auto-clear selection if the selected target dropped from the snapshot.
+        if (
+          _selectedTargetId &&
+          !(snapshot.targets || []).some((t) => t.stableId === _selectedTargetId)
+        ) {
+          layer.clearSelection();
+        }
+        _snapshotListener?.();
         if (count > 0) {
           console.log(
             `[Data:LRF] Updated: ${count} observation(s), ${(snapshot.observers || []).length} observer(s)`,
@@ -399,12 +472,16 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
       _enabled = false;
       _lastSnapshot = null;
       _hoveredTargetId = null;
+      _snapshotListener = null;
+      layer.clearSelection();
       if (_hoverHandler) {
         _hoverHandler.destroy();
         _hoverHandler = null;
       }
       overlayHost.clearSource(LRF_OVERLAY_SOURCE_ID);
+      overlayHost.clearSource(LRF_SELECTED_OVERLAY_SOURCE_ID);
       overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, false);
+      overlayHost.setVisible(LRF_SELECTED_OVERLAY_SOURCE_ID, false);
       if (_dataSource) {
         viewer.dataSources.remove(_dataSource, true);
         _dataSource = null;

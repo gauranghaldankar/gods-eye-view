@@ -1,0 +1,137 @@
+/* ── LRF Observations Panel ─────────────────── */
+#lrf-panel {
+  --panel-expanded-width: 280px;
+  position: fixed;
+  top: var(--left-stack-top);
+  left: var(--left-stack-x);
+  right: auto;
+  bottom: auto;
+  z-index: 100;
+  width: var(--panel-expanded-width);
+  max-height: calc(100vh - 24px);
+}
+
+#lrf-panel .panel-glow {
+  position: absolute;
+  inset: -18px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 212, 255, 0.14) 0%,
+    transparent 65%
+  );
+  filter: blur(16px);
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.lrf-panel-inner {
+  position: relative;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--panel-radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 212, 255, 0.46) rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+
+/* Dark mode: lrf-panel-inner is already dark by default via glass-bg */
+
+.lrf-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.lrf-status {
+  color: var(--text-dim, rgba(160, 220, 230, 0.55));
+  font: 8px/1 var(--font-mono, monospace);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0 2px;
+}
+
+.lrf-target-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.lrf-target-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.lrf-target-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px 8px;
+  border-left: 3px solid var(--lrf-aff-color, #FFCC00);
+  border-radius: 3px;
+  background: rgba(0, 20, 30, 0.45);
+  color: rgba(180, 240, 255, 0.85);
+  font: 10px/1.2 var(--font-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lrf-target-btn:hover,
+.lrf-target-btn:focus-visible {
+  background: rgba(0, 212, 255, 0.1);
+  outline: none;
+}
+
+.lrf-target-row.is-active .lrf-target-btn {
+  background: rgba(0, 212, 255, 0.18);
+  color: rgba(180, 240, 255, 1);
+  border-left-width: 4px;
+}
+
+.lrf-accordion {
+  padding: 6px 10px 8px 12px;
+  background: rgba(0, 12, 20, 0.55);
+  border-left: 2px solid rgba(0, 212, 255, 0.2);
+  border-radius: 0 0 3px 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.lrf-accordion-line {
+  margin: 0;
+  color: rgba(150, 220, 240, 0.75);
+  font: 9px/1.4 var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+}
+
+/* Dark mode: panel is always dark-themed, no extra dark: variants needed */
+@media (prefers-color-scheme: light) {
+  /* When the system is light but the app has forced dark via .dark on <html>,
+     these rules never apply; when it's actually a light-mode user, keep the
+     panel readable. */
+  .lrf-panel-inner {
+    background: rgba(10, 25, 35, 0.92);
+  }
+}

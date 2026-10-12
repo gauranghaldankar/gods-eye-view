@@ -22,6 +22,8 @@ export function createApplicationControls({
       fetchRegionalBrief: (...args) =>
         operations.requests.regional.getBrief(...args),
       ...catalogControlServices(catalog),
+      // Layers not in CONTROL_LAYER_IDS that need direct panel access.
+      lrfObservationsLayer: catalog?.get?.('lrf-observations') || null,
     },
     requestServices: operations.requests,
     mapStackController,

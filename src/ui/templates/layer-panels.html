@@ -140,6 +140,24 @@
     </div>
   </div>
 
+  <!-- LRF Observations Panel (moved into #right-context-rail at runtime) -->
+  <div id="lrf-panel" class="panel-collapsible collapsed" data-panel-id="lrf-panel">
+    <div class="panel-glow"></div>
+    <div class="lrf-panel-inner" data-rail-scroller>
+      <div class="panel-header">
+        <span class="panel-title">LRF TARGETS</span>
+        <span class="panel-divider"></span>
+        <button class="panel-collapse-btn" data-collapse-target="lrf-panel"
+                aria-expanded="false" title="Collapse LRF Targets">&#x25C4;</button>
+      </div>
+      <div class="lrf-panel-body">
+        <div id="lrf-panel-status" class="lrf-status"></div>
+        <ul id="lrf-target-list" class="lrf-target-list" role="listbox"
+            aria-label="LRF observation targets"></ul>
+      </div>
+    </div>
+  </div>
+
   <!-- Scene Director Panel -->
   <div id="scene-panel" class="panel-collapsible collapsed" data-panel-id="scene-panel">
     <div class="panel-glow"></div>

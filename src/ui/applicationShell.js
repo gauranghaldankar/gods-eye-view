@@ -15,6 +15,7 @@ import { readShellElements } from './shellElements.js';
 import { CockpitCoordinator } from './cockpitCoordinator.js';
 import { ContextControls } from './context.js';
 import { CctvControls } from './cctv.js';
+import { LrfPanelBindings } from './lrfPanelBindings.js';
 import { StreetLevelControls } from './streetLevelControls.js';
 import { RadioControls } from './radio.js';
 import { LocalSdrControls } from './localSdrControls.js';
@@ -571,6 +572,7 @@ export class StyleManager extends ShellFacade {
     this._initRightPanelAdaptiveLayout();
     this._initRadioPanel();
     this._initCctvPanel();
+    this._initLrfPanel();
     this._initStreetLevelPanel();
     this._initGlobalContextPanel();
     this._initLocationBar();
@@ -1016,6 +1018,22 @@ export class StyleManager extends ShellFacade {
         syncViewport: () => this._syncCctvPanelViewport(),
         setSplitFlapText,
       },
+    });
+  }
+
+  /** Wire the LRF Observations target-list panel. */
+  _initLrfPanel() {
+    if (!this._lrfPanel) return;
+    const lrfLayer = this.services?.lrfObservationsLayer;
+    if (!lrfLayer) return;
+    this._lrfPanelBindings?.destroy();
+    this._lrfPanelBindings = new LrfPanelBindings({
+      elements: {
+        _lrfPanel: this._lrfPanel,
+        _lrfTargetList: this._lrfTargetList,
+        _lrfPanelStatus: this._lrfPanelStatus,
+      },
+      layer: lrfLayer,
     });
   }
 
@@ -1585,6 +1603,7 @@ export class StyleManager extends ShellFacade {
     this._cameraOrientationControls?.destroy();
     this._clearLayersControl?.destroy();
     this._cctvControls?.destroy();
+    this._lrfPanelBindings?.destroy();
     this.services?.streetLevelLayer?.attachNavigation?.(null);
     this._streetLevelControls?.destroy();
     this._radioControls?.destroy();
