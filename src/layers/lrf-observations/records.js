@@ -30,6 +30,7 @@ export function normalizeLrfSnapshot(geojson) {
       targetIds.add(id);
       targets.push({
         stableId: String(id),
+        displayId: typeof props.displayId === 'string' ? props.displayId : null,
         observationId: props.observationId ?? null,
         targetEstimateId: props.targetEstimateId ?? null,
         lon,
