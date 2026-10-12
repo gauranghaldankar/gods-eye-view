@@ -43,10 +43,10 @@ function affiliationTag(affiliation) {
 export function createLrfOverlayEntry({ id, position, target }) {
   const aff = target.affiliation || 'UNKNOWN';
   const tag = affiliationTag(aff);
-  const detail = target.cep50M
-    ? `CEP ${Math.round(target.cep50M)}m`
-    : target.category || '';
-  const title = detail ? `${tag} ${detail}` : tag;
+  const displayId = target.displayId || '';
+  const cep = target.cep50M ? `CEP ${Math.round(target.cep50M)}m` : '';
+  const parts = [displayId, tag, cep].filter(Boolean);
+  const title = parts.join(' ') || tag;
 
   return {
     id: String(id),
