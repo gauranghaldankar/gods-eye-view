@@ -247,6 +247,21 @@ export function lrfProxy() {
                 }
               } else if (msg.type === 'observer' && msg.geojson) {
                 ingestFeature(msg.geojson);
+              } else if (msg.type === 'delete' && msg.id) {
+                // Try direct key match first (observationId), then scan
+                // for targetEstimateId match (TargetsViewModel sends estimateId)
+                let existed = _liveFeatures.delete(msg.id);
+                if (!existed) {
+                  for (const [key, feat] of _liveFeatures) {
+                    const p = feat.properties || {};
+                    if (p.targetEstimateId === msg.id || p.observationId === msg.id || feat.id === msg.id) {
+                      _liveFeatures.delete(key);
+                      existed = true;
+                      break;
+                    }
+                  }
+                }
+                console.log(`[LRF] WS delete: ${msg.id} (existed=${existed})`);
               } else if (msg.type === 'ping') {
                 ws.send(JSON.stringify({ type: 'pong' }));
               }
