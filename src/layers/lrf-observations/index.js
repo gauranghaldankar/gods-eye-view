@@ -50,6 +50,13 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
   let _snapshotListener = null;
   let _selectedTargetId = null;
 
+  /** Map NATO affiliation to a detection tier key with matching color. */
+  function _affiliationTier(aff) {
+    return (
+      { HOSTILE: 'military', FRIEND: 'transit_ferry', NEUTRAL: 'veh_free', UNKNOWN: 'vehicle' }[aff] || 'civil'
+    );
+  }
+
   function _refreshOverlays() {
     if (!_enabled || !_lastSnapshot?.targets?.length) return;
     const entries = [];
@@ -237,6 +244,7 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
           ),
           id: `LRF ${target.stableId}`,
           type: 'LRF',
+          tier: _affiliationTier(target.affiliation),
           skipLabel: true,
         },
       ];
