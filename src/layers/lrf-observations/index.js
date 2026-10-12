@@ -57,7 +57,7 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
       const position = Cesium.Cartesian3.fromDegrees(
         target.lon, target.lat, target.hEllM,
       );
-      if (_hoveredTargetId === target.stableId) {
+      if (_hoveredTargetId === target.stableId && _selectedTargetId !== target.stableId) {
         entries.push(createLrfHoverCard({ id: target.stableId, position, target }));
       } else {
         entries.push(createLrfOverlayEntry({ id: target.stableId, position, target }));
