@@ -5,6 +5,7 @@ import {
   LRF_OVERLAY_COLLISION_CAPACITY,
   affiliationColor,
   createLrfOverlayEntry,
+  createLrfHoverCard,
   selectLrfOverlayCohort,
   mapAnalystRecord,
 } from './model.js';
@@ -40,6 +41,32 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
   let _markerSize = 12;
   let _rowControlsListener = null;
   let _pendingFlyTo = false;
+  let _hoverHandler = null;
+  let _hoveredTargetId = null;
+
+  function _refreshOverlays() {
+    if (!_enabled || !_lastSnapshot?.targets?.length) return;
+    const entries = [];
+    for (const target of _lastSnapshot.targets) {
+      const position = Cesium.Cartesian3.fromDegrees(
+        target.lon, target.lat, target.hEllM,
+      );
+      if (_hoveredTargetId === target.stableId) {
+        entries.push(createLrfHoverCard({ id: target.stableId, position, target }));
+      } else {
+        entries.push(createLrfOverlayEntry({ id: target.stableId, position, target }));
+      }
+    }
+    overlayHost.setEntries(
+      LRF_OVERLAY_SOURCE_ID,
+      selectLrfOverlayCohort(entries),
+      {
+        cohortLimit: LRF_OVERLAY_COHORT_LIMIT,
+        collisionCapacity: LRF_OVERLAY_COLLISION_CAPACITY,
+        moving: false,
+      },
+    );
+  }
 
   const layer = {
     id: 'lrf-observations',
@@ -61,6 +88,24 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
       _enabled = false;
       _lastSnapshot = null;
       overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, false);
+      _hoverHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+      _hoverHandler.setInputAction((movement) => {
+        if (!_enabled || !_lastSnapshot) return;
+        const picked = viewer.scene.pick(movement.endPosition);
+        const entityId = picked?.id?.id || '';
+        const targetPrefix = 'lrf-target:';
+        if (entityId.startsWith(targetPrefix)) {
+          const stableId = entityId.slice(targetPrefix.length);
+          if (_hoveredTargetId === stableId) return;
+          _hoveredTargetId = stableId;
+          _refreshOverlays();
+          viewer.scene.canvas.style.cursor = 'pointer';
+        } else if (_hoveredTargetId) {
+          _hoveredTargetId = null;
+          _refreshOverlays();
+          viewer.scene.canvas.style.cursor = '';
+        }
+      }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
       console.log('[Data:LRF] Initialized');
     },
 
@@ -351,15 +396,20 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
     destroy(viewer = _viewer) {
       _request?.abort();
       _request = null;
-      _viewer = null;
       _enabled = false;
       _lastSnapshot = null;
+      _hoveredTargetId = null;
+      if (_hoverHandler) {
+        _hoverHandler.destroy();
+        _hoverHandler = null;
+      }
       overlayHost.clearSource(LRF_OVERLAY_SOURCE_ID);
       overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, false);
       if (_dataSource) {
         viewer.dataSources.remove(_dataSource, true);
         _dataSource = null;
       }
+      _viewer = null;
       _count = 0;
       _lastUpdate = null;
       _lastError = null;

@@ -67,6 +67,50 @@ export function createLrfOverlayEntry({ id, position, target }) {
   };
 }
 
+/** Build the hover card overlay for one LRF observation — richer CoT detail. */
+export function createLrfHoverCard({ id, position, target }) {
+  const aff = target.affiliation || 'UNKNOWN';
+  const tag = affiliationTag(aff);
+  const title = `${tag} · ${target.category || 'Target'}`;
+
+  const details = [];
+  if (target.mgrs) details.push(`MGRS ${target.mgrs}`);
+  const range = target.rangeM != null ? `${Math.round(target.rangeM)}m` : '';
+  const az = target.azimuthTrueDeg != null
+    ? `${target.azimuthTrueDeg.toFixed(1)}°T`
+    : '';
+  if (range || az) details.push([range, az].filter(Boolean).join(' · '));
+  if (target.cep50M != null)
+    details.push(
+      `CEP ${Math.round(target.cep50M)}m · ${Math.round(target.semiMajor95M || 0)}×${Math.round(target.semiMinor95M || 0)}m 95%`,
+    );
+  if (target.observerCallsign) details.push(`OBS ${target.observerCallsign}`);
+  if (target.remarks) details.push(target.remarks);
+  if (target.timeUtc) details.push(target.timeUtc.replace('T', ' ').replace('Z', ' Z'));
+
+  return {
+    id: String(id),
+    position,
+    variant: 'card',
+    cardStyle: 'tactical',
+    title,
+    details,
+    accent: affiliationCss(aff),
+    priority: Number.MAX_SAFE_INTEGER,
+    protected: true,
+    collisionGroup: 'ambient-card',
+    paintLane: 'ambient-card',
+    interactive: false,
+    edgeFade: 'keyhole',
+    horizonCull: true,
+    terrainOcclusion: false,
+    gapPx: 18,
+    leaderOffsetPx: 12,
+    verticalOnly: true,
+    placement: 'above',
+  };
+}
+
 /** Hostile targets get highest priority, then by range (closer = more urgent). */
 function priorityForTarget(target) {
   const base =
