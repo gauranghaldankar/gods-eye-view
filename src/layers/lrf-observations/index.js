@@ -53,7 +53,7 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
   /** Map NATO affiliation to a detection tier key with matching color. */
   function _affiliationTier(aff) {
     return (
-      { HOSTILE: 'military', FRIEND: 'transit_ferry', NEUTRAL: 'veh_free', UNKNOWN: 'vehicle' }[aff] || 'civil'
+      { HOSTILE: 'lrf_hostile', FRIEND: 'lrf_friend', NEUTRAL: 'lrf_neutral', UNKNOWN: 'lrf_unknown' }[aff] || 'lrf_unknown'
     );
   }
 

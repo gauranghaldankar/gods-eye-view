@@ -133,6 +133,10 @@ export const DETECTION_THEME_MAP = Object.freeze({
       transit_rail: '#D9A6FF',
       transit_ferry: '#5FD6FF',
       transit_unknown: '#D8DDE5',
+      lrf_hostile: '#FF4444',
+      lrf_friend: '#4488FF',
+      lrf_neutral: '#44BB44',
+      lrf_unknown: '#FFCC00',
     },
   },
   surveillance: {
@@ -163,6 +167,10 @@ export const DETECTION_THEME_MAP = Object.freeze({
       transit_rail: '#D9A6FF',
       transit_ferry: '#5FD6FF',
       transit_unknown: '#D8DDE5',
+      lrf_hostile: '#FF4444',
+      lrf_friend: '#4488FF',
+      lrf_neutral: '#44BB44',
+      lrf_unknown: '#FFCC00',
     },
   },
   thermal: {
@@ -193,6 +201,10 @@ export const DETECTION_THEME_MAP = Object.freeze({
       transit_rail: '#D9A6FF',
       transit_ferry: '#5FD6FF',
       transit_unknown: '#D8DDE5',
+      lrf_hostile: '#FF4444',
+      lrf_friend: '#4488FF',
+      lrf_neutral: '#44BB44',
+      lrf_unknown: '#FFCC00',
     },
   },
   _default: {
@@ -223,6 +235,10 @@ export const DETECTION_THEME_MAP = Object.freeze({
       transit_rail: '#D9A6FF',
       transit_ferry: '#5FD6FF',
       transit_unknown: '#D8DDE5',
+      lrf_hostile: '#FF4444',
+      lrf_friend: '#4488FF',
+      lrf_neutral: '#44BB44',
+      lrf_unknown: '#FFCC00',
     },
   },
 });
