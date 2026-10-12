@@ -165,7 +165,8 @@
 #right-context-rail > #street-level-panel:not(.panel-floating),
 #right-context-rail > #weather-panel,
 #right-context-rail > #recent-imagery-panel,
-#right-context-rail > #global-context-panel {
+#right-context-rail > #global-context-panel,
+#right-context-rail > #lrf-panel {
   position: relative;
   inset: auto;
   flex: 0 0 auto;
@@ -179,7 +180,8 @@
 #right-context-rail #cctv-panel:not(.panel-floating),
 #right-context-rail #street-level-panel:not(.panel-floating),
 #right-context-rail #weather-panel,
-#right-context-rail #recent-imagery-panel {
+#right-context-rail #recent-imagery-panel,
+#right-context-rail #lrf-panel {
   width: 100%;
   max-height: 100%;
   pointer-events: auto;
@@ -195,7 +197,8 @@
 #right-context-rail #cctv-panel.collapsed:not(.panel-floating),
 #right-context-rail #street-level-panel.collapsed:not(.panel-floating),
 #right-context-rail #weather-panel.collapsed,
-#right-context-rail #recent-imagery-panel.collapsed {
+#right-context-rail #recent-imagery-panel.collapsed,
+#right-context-rail #lrf-panel.collapsed {
   width: var(--right-display-collapsed-width);
   margin-left: auto;
 }
