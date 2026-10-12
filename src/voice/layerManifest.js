@@ -355,6 +355,22 @@ const layers = [
     noQuery: 'cable records are not loaded for queries',
   },
   {
+    id: 'lrf-observations',
+    aliases: ['lrf', 'rangefinder', 'laser rangefinder', 'lrf targets'],
+    context: false,
+    query: {
+      fields: {
+        range_m: ['n', 'm'],
+        azimuth_true_deg: ['n', 'deg'],
+        cep50_m: ['n', 'm'],
+        affiliation: ['t'],
+        category: ['t'],
+        mgrs: ['t'],
+        observer: ['t'],
+      },
+    },
+  },
+  {
     // Global Context owns this layer; voice reaches it through
     // set_context_mode, never a bare toggle.
     id: 'military-awareness',

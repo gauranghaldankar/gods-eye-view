@@ -410,8 +410,9 @@ export class LayerPanel {
     const chips = controls?.chips || [];
     const legend = controls?.legend || [];
     const infoText = controls?.info;
+    const slidersDefined = Array.isArray(controls?.sliders) && controls.sliders.length > 0;
     this._syncRowList(listContainer, controls?.list || null);
-    container.hidden = chips.length === 0 && legend.length === 0 && !infoText;
+    container.hidden = chips.length === 0 && legend.length === 0 && !infoText && !slidersDefined;
 
     const info = container._rowControlsInfo || null;
     const firstLegend = container.querySelector('.data-toggle-legend-item');
@@ -461,6 +462,53 @@ export class LayerPanel {
       if (node.title !== title) node.title = title;
       const hidden = !text;
       if (node.hidden !== hidden) node.hidden = hidden;
+    }
+
+    const sliders = controls?.sliders || [];
+    // _sliderNodes is a Map<sliderId, {row, input, valueSpan}> stored on the container
+    // to avoid DOM queries that test stubs may not fully implement.
+    if (!container._sliderNodes) container._sliderNodes = new Map();
+    // Remove rows whose descriptors are no longer present
+    for (const [id, nodes] of [...container._sliderNodes]) {
+      if (!sliders.find((s) => s.id === id)) {
+        nodes.row.remove();
+        container._sliderNodes.delete(id);
+      }
+    }
+    for (const slider of sliders) {
+      const existing = container._sliderNodes.get(slider.id);
+      if (!existing) {
+        const row = document.createElement('div');
+        row.className = 'lrf-slider-row';
+        row.dataset.sliderId = slider.id;
+        const label = document.createElement('span');
+        label.className = 'lrf-slider-label';
+        label.textContent = slider.label;
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.min = String(slider.min);
+        input.max = String(slider.max);
+        input.step = String(slider.step);
+        input.value = String(slider.value);
+        input.setAttribute('aria-label', slider.label);
+        const valueSpan = document.createElement('span');
+        valueSpan.className = 'lrf-slider-value';
+        valueSpan.textContent = `${slider.value}${slider.unit || ''}`;
+        input.addEventListener('input', () => {
+          valueSpan.textContent = `${input.valueAsNumber}${slider.unit || ''}`;
+          this.setLayerParams(layer.id, { [slider.param]: input.valueAsNumber }, { origin: 'user' });
+        });
+        row.appendChild(label);
+        row.appendChild(input);
+        row.appendChild(valueSpan);
+        container.appendChild(row);
+        container._sliderNodes.set(slider.id, { row, input, valueSpan });
+      } else {
+        // Reconcile in-place
+        if (Number(existing.input.value) !== slider.value)
+          existing.input.value = String(slider.value);
+        existing.valueSpan.textContent = `${slider.value}${slider.unit || ''}`;
+      }
     }
   }
 

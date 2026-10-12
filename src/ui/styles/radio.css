@@ -1037,3 +1037,69 @@
 .sdr-feed-status[hidden] {
   display: none;
 }
+
+/* ── LRF Observation visual sliders ────────────────────────────────────── */
+.lrf-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-basis: 100%;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.lrf-slider-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  width: 42px;
+  flex: none;
+}
+
+.lrf-slider-row input[type='range'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 3px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(0, 212, 255, 0.18);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.lrf-slider-row input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent, #00d4ff);
+  border: none;
+  cursor: pointer;
+}
+
+.lrf-slider-row input[type='range']::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent, #00d4ff);
+  border: none;
+  cursor: pointer;
+}
+
+.lrf-slider-row input[type='range']:focus-visible {
+  outline: 1px solid var(--accent, #00d4ff);
+  outline-offset: 2px;
+}
+
+.lrf-slider-value {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--accent, #00d4ff);
+  letter-spacing: 0.5px;
+  width: 26px;
+  text-align: right;
+  flex: none;
+}

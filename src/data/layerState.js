@@ -451,6 +451,11 @@ const OPTION_GROUPS = Object.freeze({
         /^\d{1,3}$/.test(value) ? normalizeVolume(Number(value) / 100) : null,
     }),
   ]),
+  'lrf-observations': Object.freeze([
+    integerOption('lineWidth', 'w', 2),
+    integerOption('ellipseOpacity', 'o', 15),
+    integerOption('markerSize', 'm', 12),
+  ]),
 });
 
 export const SHARE_TRACKING_RESTORE_POLICIES = Object.freeze({
@@ -615,6 +620,12 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
   }),
   Object.freeze({ id: 'local-firms', token: 'w', disposition: 'enabled-only' }),
   Object.freeze({
+    id: 'lrf-observations',
+    token: '3',
+    disposition: 'enabled+options',
+    optionOwner: 'lrf-observations',
+  }),
+  Object.freeze({
     id: 'military',
     token: 'm',
     disposition: 'enabled+mirrored-options',
@@ -699,11 +710,6 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     token: 'k',
     disposition: 'enabled+options',
     optionOwner: 'wind',
-  }),
-  Object.freeze({
-    id: 'lrf-observations',
-    token: '3',
-    disposition: 'enabled-only',
   }),
 ]);
 

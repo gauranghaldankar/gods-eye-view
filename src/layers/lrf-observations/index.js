@@ -35,6 +35,11 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
   let _lastError = null;
   let _enabled = false;
   let _lastSnapshot = null;
+  let _lineWidth = 2;
+  let _ellipseOpacity = 15;
+  let _markerSize = 12;
+  let _rowControlsListener = null;
+  let _pendingFlyTo = false;
 
   const layer = {
     id: 'lrf-observations',
@@ -61,6 +66,7 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
 
     enable() {
       _enabled = true;
+      _pendingFlyTo = true;
       if (_dataSource) _dataSource.show = true;
       overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, true);
     },
@@ -72,6 +78,42 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
       if (_dataSource) _dataSource.show = false;
       overlayHost.clearSource(LRF_OVERLAY_SOURCE_ID);
       overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, false);
+    },
+
+    setParams(params = {}) {
+      let changed = false;
+      if (params.lineWidth != null) {
+        const v = Math.max(1, Math.min(8, Math.round(Number(params.lineWidth))));
+        if (Number.isFinite(v) && v !== _lineWidth) { _lineWidth = v; changed = true; }
+      }
+      if (params.ellipseOpacity != null) {
+        const v = Math.max(5, Math.min(80, Math.round(Number(params.ellipseOpacity) / 5) * 5));
+        if (Number.isFinite(v) && v !== _ellipseOpacity) { _ellipseOpacity = v; changed = true; }
+      }
+      if (params.markerSize != null) {
+        const v = Math.max(6, Math.min(24, Math.round(Number(params.markerSize) / 2) * 2));
+        if (Number.isFinite(v) && v !== _markerSize) { _markerSize = v; changed = true; }
+      }
+      if (changed) {
+        _rowControlsListener?.();
+        // Re-render with new visual params
+        layer.update();
+      }
+      return changed;
+    },
+
+    setRowControlsListener(listener) {
+      _rowControlsListener = listener || null;
+    },
+
+    getRowControls() {
+      return {
+        sliders: [
+          { id: 'lineWidth', label: 'Line', min: 1, max: 8, step: 1, value: _lineWidth, param: 'lineWidth' },
+          { id: 'ellipseOpacity', label: 'Ellipse', min: 5, max: 80, step: 5, value: _ellipseOpacity, unit: '%', param: 'ellipseOpacity' },
+          { id: 'markerSize', label: 'Marker', min: 6, max: 24, step: 2, value: _markerSize, unit: 'px', param: 'markerSize' },
+        ],
+      };
     },
 
     async update() {
@@ -100,7 +142,7 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
                 obs.hEllM,
               ),
               point: {
-                pixelSize: 10,
+                pixelSize: Math.max(6, _markerSize - 2),
                 color: Cesium.Color.fromCssColorString('#4488FF'),
                 outlineColor: Cesium.Color.WHITE,
                 outlineWidth: 2,
@@ -147,7 +189,7 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
                 polygon: {
                   hierarchy: new Cesium.PolygonHierarchy(positions),
                   material: new Cesium.ColorMaterialProperty(
-                    color.withAlpha(0.15),
+                    color.withAlpha(_ellipseOpacity / 100),
                   ),
                   outline: true,
                   outlineColor: color.withAlpha(0.7),
@@ -170,7 +212,7 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
                   semiMinorAxis: target.semiMinor95M,
                   rotation: -orientRad, // Cesium: CW from north; LRF: CW from north
                   material: new Cesium.ColorMaterialProperty(
-                    color.withAlpha(0.15),
+                    color.withAlpha(_ellipseOpacity / 100),
                   ),
                   outline: true,
                   outlineColor: color.withAlpha(0.7),
@@ -187,7 +229,7 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
               id: `lrf-target:${target.stableId}`,
               position,
               point: {
-                pixelSize: 12,
+                pixelSize: _markerSize,
                 color,
                 outlineColor: Cesium.Color.WHITE,
                 outlineWidth: 2,
@@ -229,7 +271,7 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
                 id: `lrf-bearing:${target.stableId}`,
                 polyline: {
                   positions: [obsPos, position],
-                  width: 1.5,
+                  width: _lineWidth,
                   material: new Cesium.ColorMaterialProperty(
                     color.withAlpha(0.5),
                   ),
@@ -269,6 +311,27 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
           console.log(
             `[Data:LRF] Updated: ${count} observation(s), ${(snapshot.observers || []).length} observer(s)`,
           );
+          if (_pendingFlyTo && _viewer) {
+            _pendingFlyTo = false;
+            const coords = [
+              ...(snapshot.observers || []).map((o) => [o.lon, o.lat]),
+              ...(snapshot.targets || []).map((t) => [t.lon, t.lat]),
+            ].filter(([lon, lat]) => Number.isFinite(lon) && Number.isFinite(lat));
+            if (coords.length > 0) {
+              const cartesians = coords.map(([lon, lat]) =>
+                Cesium.Cartesian3.fromDegrees(lon, lat),
+              );
+              const sphere = Cesium.BoundingSphere.fromPoints(cartesians);
+              _viewer.camera.flyToBoundingSphere(sphere, {
+                offset: new Cesium.HeadingPitchRange(
+                  0,
+                  Cesium.Math.toRadians(-60),
+                  Math.max(sphere.radius * 3, 2000),
+                ),
+                duration: 2,
+              });
+            }
+          }
         }
         return true;
       } catch (e) {
