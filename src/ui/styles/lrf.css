@@ -1,15 +1,12 @@
 /* ── LRF Observations Panel ─────────────────── */
-#lrf-panel {
-  --panel-expanded-width: 280px;
-  position: fixed;
-  top: var(--left-stack-top);
-  left: var(--left-stack-x);
-  right: auto;
-  bottom: auto;
-  z-index: 100;
-  width: var(--panel-expanded-width);
-  max-height: calc(100vh - 24px);
+
+/* When collapsed on the right rail, hide only the body — keep the header
+   visible so the user can click to expand. Matches the CCTV/street-level
+   pattern in cyber.css and street-level.css. */
+#lrf-panel.collapsed .lrf-panel-body {
+  display: none;
 }
+
 
 #lrf-panel .panel-glow {
   position: absolute;
