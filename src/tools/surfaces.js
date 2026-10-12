@@ -33,6 +33,8 @@ export const TOOL_SURFACES = Object.freeze({
   find_vessel: voiceOff,
   get_earthquakes: voiceOff,
   get_active_fires: voiceOff,
+  get_lrf_observations: voiceOff,
+  get_lrf_target_detail: voiceOff,
   find_infrastructure: voiceOff,
   satellites_overhead: voiceOff,
   // MCP leads with what the globe shows; assistants already search places,

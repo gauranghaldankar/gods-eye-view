@@ -16,6 +16,7 @@ import { createCycloneSource } from '../layers/cyclones/source.js';
 import { createUsgsEarthquakeSource } from '../layers/earthquakes/source.js';
 import { createFirmsSource } from '../layers/firms/source.js';
 import { createInstallationSource } from '../layers/installations/source.js';
+import { createLrfObservationsSource } from '../layers/lrf-observations/source.js';
 import { createLaunchSource } from '../layers/launches/source.js';
 import { createWfigsPerimeterSource } from '../layers/perimeters/source.js';
 import { createRadioSource } from '../layers/radio/source.js';
@@ -87,6 +88,7 @@ export function createToolServices({ fetchImpl, appUrl, panelKey }) {
       tileFetchImpl: fetchImpl,
     }),
     places: createGeocodePlaceService({ fetchImpl }),
+    lrfObservations: createLrfObservationsSource({ fetchImpl }),
   };
 }
 

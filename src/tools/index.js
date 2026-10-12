@@ -53,6 +53,10 @@ import {
   nextSatellitePass,
   satellitesOverhead,
 } from './queries/space.js';
+import {
+  getLrfObservations,
+  getLrfTargetDetail,
+} from './queries/lrfObservations.js';
 
 export {
   defineTool,
@@ -122,6 +126,8 @@ export const coreTools = Object.freeze([
   situationBrief,
   militaryAwareness,
   getHudCaption,
+  getLrfObservations,
+  getLrfTargetDetail,
   showInGodsEyeView,
   panelRequest,
 ]);
