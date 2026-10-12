@@ -476,6 +476,7 @@ export class StyleManager extends ShellFacade {
         bikeshareLayer,
         transitLayer,
         aisLiveVesselsLayer,
+        this.services?.lrfObservationsLayer,
       ].filter(Boolean),
       (modeLabel) => {
         this._updateDetectionButton(modeLabel);

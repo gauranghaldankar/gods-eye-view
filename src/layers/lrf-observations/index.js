@@ -222,6 +222,26 @@ export function createLrfObservationsLayer({ source, overlayHost } = {}) {
       return _selectedTargetId;
     },
 
+    getDetectableObjects() {
+      if (!_enabled || !_selectedTargetId || !_lastSnapshot) return [];
+      const target = (_lastSnapshot.targets || []).find(
+        (t) => t.stableId === _selectedTargetId,
+      );
+      if (!target) return [];
+      return [
+        {
+          position: Cesium.Cartesian3.fromDegrees(
+            target.lon,
+            target.lat,
+            target.hEllM,
+          ),
+          id: `LRF ${target.stableId}`,
+          type: 'LRF',
+          skipLabel: true,
+        },
+      ];
+    },
+
     async update() {
       if (!_enabled || !_dataSource) return false;
       _request?.abort();
