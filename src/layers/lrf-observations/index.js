@@ -1,0 +1,324 @@
+import * as Cesium from 'cesium';
+import {
+  LRF_OVERLAY_SOURCE_ID,
+  LRF_OVERLAY_COHORT_LIMIT,
+  LRF_OVERLAY_COLLISION_CAPACITY,
+  affiliationColor,
+  createLrfOverlayEntry,
+  selectLrfOverlayCohort,
+  mapAnalystRecord,
+} from './model.js';
+export * from './model.js';
+export { createLrfObservationsSource } from './source.js';
+
+/**
+ * LRF Observations layer — renders geolocated, error-bounded laser
+ * rangefinder target observations on the CesiumJS globe.
+ *
+ * Each observation renders as:
+ * - A ground-clamped 95% error ellipse (semi-major/minor from the error model)
+ * - A center point marker colored by NATO affiliation
+ * - An observer position marker (blue diamond)
+ * - A bearing line from observer to target
+ */
+export function createLrfObservationsLayer({ source, overlayHost } = {}) {
+  if (typeof source?.getSnapshot !== 'function')
+    throw new TypeError('LRF observations require a snapshot source');
+  if (!overlayHost)
+    throw new TypeError('LRF observations require an overlay host');
+
+  let _viewer = null;
+  let _request = null;
+  let _dataSource = null;
+  let _count = 0;
+  let _lastUpdate = null;
+  let _lastError = null;
+  let _enabled = false;
+  let _lastSnapshot = null;
+
+  const layer = {
+    id: 'lrf-observations',
+    name: 'LRF Observations',
+    icon: '\u{1F3AF}', // target emoji
+    source: 'LRF Companion',
+    updateInterval: 5000,
+
+    init(viewer) {
+      if (_viewer)
+        throw new Error('LRF observations layer is already initialized');
+      _viewer = viewer;
+      _dataSource = new Cesium.CustomDataSource('lrf-observations');
+      _dataSource.show = false;
+      viewer.dataSources.add(_dataSource);
+      _count = 0;
+      _lastUpdate = null;
+      _lastError = null;
+      _enabled = false;
+      _lastSnapshot = null;
+      overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, false);
+      console.log('[Data:LRF] Initialized');
+    },
+
+    enable() {
+      _enabled = true;
+      if (_dataSource) _dataSource.show = true;
+      overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, true);
+    },
+
+    disable() {
+      _request?.abort();
+      _request = null;
+      _enabled = false;
+      if (_dataSource) _dataSource.show = false;
+      overlayHost.clearSource(LRF_OVERLAY_SOURCE_ID);
+      overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, false);
+    },
+
+    async update() {
+      if (!_enabled || !_dataSource) return false;
+      _request?.abort();
+      const request = new AbortController();
+      _request = request;
+      try {
+        const snapshot = await source.getSnapshot({ signal: request.signal });
+        if (request.signal.aborted || _request !== request || !_enabled)
+          return false;
+
+        _lastSnapshot = snapshot;
+        const nextEntities = [];
+        const overlayEntries = [];
+        let count = 0;
+
+        // Render observer positions
+        for (const obs of snapshot.observers || []) {
+          nextEntities.push(
+            new Cesium.Entity({
+              id: `lrf-observer:${obs.id}`,
+              position: Cesium.Cartesian3.fromDegrees(
+                obs.lon,
+                obs.lat,
+                obs.hEllM,
+              ),
+              point: {
+                pixelSize: 10,
+                color: Cesium.Color.fromCssColorString('#4488FF'),
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 2,
+                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              },
+              properties: {
+                featureType: 'observer',
+                callsign: obs.callsign,
+              },
+            }),
+          );
+        }
+
+        // Build a lookup from targetEstimateId to ellipse polygon ring
+        const ellipseRings = new Map();
+        for (const ell of snapshot.ellipses || []) {
+          if (ell.targetEstimateId && ell.ring?.length >= 4) {
+            ellipseRings.set(ell.targetEstimateId, ell);
+          }
+        }
+
+        // Render target observations
+        for (const target of snapshot.targets || []) {
+          count++;
+          const color = affiliationColor(target.affiliation);
+          const position = Cesium.Cartesian3.fromDegrees(
+            target.lon,
+            target.lat,
+            target.hEllM,
+          );
+
+          // 95% error ellipse — prefer the polygon ring from the export,
+          // fall back to Cesium's built-in ellipse primitive
+          const ellipseData = ellipseRings.get(target.targetEstimateId);
+          if (ellipseData?.ring?.length >= 4) {
+            // Use the geodesic polygon from LRF's exporter
+            const positions = ellipseData.ring.map(([lon, lat]) =>
+              Cesium.Cartesian3.fromDegrees(lon, lat),
+            );
+            nextEntities.push(
+              new Cesium.Entity({
+                id: `lrf-ellipse:${target.stableId}`,
+                polygon: {
+                  hierarchy: new Cesium.PolygonHierarchy(positions),
+                  material: new Cesium.ColorMaterialProperty(
+                    color.withAlpha(0.15),
+                  ),
+                  outline: true,
+                  outlineColor: color.withAlpha(0.7),
+                  outlineWidth: 2,
+                  heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                },
+              }),
+            );
+          } else if (target.semiMajor95M && target.semiMinor95M) {
+            // Fallback: use Cesium ellipse primitive
+            const orientRad = target.ellipseOrientDeg
+              ? Cesium.Math.toRadians(target.ellipseOrientDeg)
+              : 0;
+            nextEntities.push(
+              new Cesium.Entity({
+                id: `lrf-ellipse:${target.stableId}`,
+                position,
+                ellipse: {
+                  semiMajorAxis: target.semiMajor95M,
+                  semiMinorAxis: target.semiMinor95M,
+                  rotation: -orientRad, // Cesium: CW from north; LRF: CW from north
+                  material: new Cesium.ColorMaterialProperty(
+                    color.withAlpha(0.15),
+                  ),
+                  outline: true,
+                  outlineColor: color.withAlpha(0.7),
+                  outlineWidth: 2,
+                  heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                },
+              }),
+            );
+          }
+
+          // Target center point
+          nextEntities.push(
+            new Cesium.Entity({
+              id: `lrf-target:${target.stableId}`,
+              position,
+              point: {
+                pixelSize: 12,
+                color,
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 2,
+                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              },
+              properties: {
+                featureType: 'target',
+                observationId: target.observationId,
+                targetEstimateId: target.targetEstimateId,
+                mgrs: target.mgrs,
+                rangeM: target.rangeM,
+                azimuthTrueDeg: target.azimuthTrueDeg,
+                inclinationDeg: target.inclinationDeg,
+                cep50M: target.cep50M,
+                semiMajor95M: target.semiMajor95M,
+                semiMinor95M: target.semiMinor95M,
+                affiliation: target.affiliation,
+                category: target.category,
+                remarks: target.remarks,
+                observerCallsign: target.observerCallsign,
+                timeUtc: target.timeUtc,
+              },
+            }),
+          );
+
+          // Bearing line from observer to target
+          const observer = (snapshot.observers || []).find(
+            (o) => o.callsign === target.observerCallsign,
+          );
+          if (observer) {
+            const obsPos = Cesium.Cartesian3.fromDegrees(
+              observer.lon,
+              observer.lat,
+              observer.hEllM,
+            );
+            nextEntities.push(
+              new Cesium.Entity({
+                id: `lrf-bearing:${target.stableId}`,
+                polyline: {
+                  positions: [obsPos, position],
+                  width: 1.5,
+                  material: new Cesium.ColorMaterialProperty(
+                    color.withAlpha(0.5),
+                  ),
+                  clampToGround: true,
+                },
+              }),
+            );
+          }
+
+          overlayEntries.push(
+            createLrfOverlayEntry({
+              id: target.stableId,
+              position,
+              target,
+            }),
+          );
+        }
+
+        _dataSource.entities.removeAll();
+        for (const entity of nextEntities) _dataSource.entities.add(entity);
+        if (_enabled) {
+          overlayHost.setEntries(
+            LRF_OVERLAY_SOURCE_ID,
+            selectLrfOverlayCohort(overlayEntries),
+            {
+              cohortLimit: LRF_OVERLAY_COHORT_LIMIT,
+              collisionCapacity: LRF_OVERLAY_COLLISION_CAPACITY,
+              moving: false,
+            },
+          );
+        }
+
+        _count = count;
+        _lastUpdate = Date.now();
+        _lastError = null;
+        if (count > 0) {
+          console.log(
+            `[Data:LRF] Updated: ${count} observation(s), ${(snapshot.observers || []).length} observer(s)`,
+          );
+        }
+        return true;
+      } catch (e) {
+        if (request.signal.aborted || _request !== request || !_enabled)
+          return false;
+        // 404 is normal when no data is loaded yet — don't warn
+        if (!e.message?.includes('404')) {
+          console.warn('[Data:LRF] Fetch error:', e);
+        }
+        _lastError = e?.message || 'LRF source unavailable';
+        return false;
+      } finally {
+        if (_request === request) _request = null;
+      }
+    },
+
+    destroy(viewer = _viewer) {
+      _request?.abort();
+      _request = null;
+      _viewer = null;
+      _enabled = false;
+      _lastSnapshot = null;
+      overlayHost.clearSource(LRF_OVERLAY_SOURCE_ID);
+      overlayHost.setVisible(LRF_OVERLAY_SOURCE_ID, false);
+      if (_dataSource) {
+        viewer.dataSources.remove(_dataSource, true);
+        _dataSource = null;
+      }
+      _count = 0;
+      _lastUpdate = null;
+      _lastError = null;
+    },
+
+    getAnalystRecords(maxCount = 2000) {
+      if (!_lastSnapshot?.targets?.length) return [];
+      const limit = Number.isFinite(maxCount)
+        ? Math.max(1, Math.floor(maxCount))
+        : 2000;
+      return _lastSnapshot.targets
+        .slice(0, limit)
+        .map((t, i) => mapAnalystRecord(t, i));
+    },
+
+    getStats() {
+      return {
+        count: _count,
+        lastUpdate: _lastUpdate,
+        error: _lastError,
+      };
+    },
+  };
+  return layer;
+}
